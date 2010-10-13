@@ -16,11 +16,13 @@ init({conf, Conf}) ->
     Timeout = proplists:get_value(timeout, Conf, ?DEFAULT_TIMEOUT),
     Format = proplists:get_value(format, Conf, ?DEFAULT_FORMAT),
     {ok, Form} = log_formatter:parse(Format),
+    Pid = spawn_link(fun receive_ignore/0),
     State = #http_appender{
       level = Level,
       format = Form,
       uri = Uri,
-      timeout = Timeout
+      timeout = Timeout,
+      pid = Pid
      },
     {ok, State}.
 
@@ -60,17 +62,22 @@ do_log(#log{level = L} = Log, #http_appender{level=Level} = State) ->
     case ToLog of
         true ->
             Uri = State#http_appender.uri,
+            Pid = State#http_appender.pid,
             Timeout = State#http_appender.timeout,
             Format = State#http_appender.format,
             Msg = log_formatter:format(Log, Format),
-            Who = node(),
-            do_send(Uri, Timeout, {Who, L, Msg});
+            do_send(Uri, Timeout, Pid, {L, Msg});
         false ->
             ok
     end.
 
-do_send(Uri, Timeout, {Who, Level, Msg})
-  when is_atom(Who), is_atom(Level) ->
-    httpc:request(post,
-                  {Uri, [], "text/plain", io_lib:format("~p: ~p", [Who, Msg])},
-                  [{timeout, Timeout}], []).
+do_send(Uri, Timeout, Pid, {Level, Msg})
+  when is_atom(Level) ->
+    ibrowse:send_req(Uri, [], post, Msg,
+                     [
+                      {stream_to, Pid}
+                     ], Timeout).
+
+receive_ignore() ->
+    receive _ -> receive_ignore() end.
+

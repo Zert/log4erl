@@ -49,7 +49,7 @@
 
 -record(syslog_appender, {level=?DEFAULT_LEVEL, facility=user,host,port=415, socket, format=?DEFAULT_FORMAT}).
 
--record(http_appender, {level=?DEFAULT_LEVEL, format=?DEFAULT_FORMAT, uri, timeout = 100}).
+-record(http_appender, {level=?DEFAULT_LEVEL, format=?DEFAULT_FORMAT, uri, timeout = 100, pid}).
 
 %% log record
 -record(log, {level, msg, data, time, millis}).
