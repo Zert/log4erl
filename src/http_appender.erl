@@ -73,7 +73,12 @@ do_log(#log{level = L} = Log, #http_appender{level=Level} = State) ->
 
 do_send(Uri, Timeout, Pid, {Level, Msg})
   when is_atom(Level) ->
-    ibrowse:send_req(Uri, [], post, Msg,
+    ibrowse:send_req(Uri,
+                     [
+                      {"X-Log-Who", node()},
+                      {"X-Log-Level", Level}
+                     ],
+                     post, Msg,
                      [
                       {stream_to, Pid}
                      ], Timeout).
